@@ -580,8 +580,14 @@ void drawrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t c
 
 // function to draw a circle
 void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
-
-	
+	for(int i = x0-r; i<x0+r; i++) {
+		for(int j = y0-r; j<y0+r; j++) {
+			int dist = sqrt(pow((i-x0),2)+pow((j-y0),2));
+			if(dist == r) {
+				setpixel(buff, i, j, color);
+			}
+		}
+	}
 }
 
 
