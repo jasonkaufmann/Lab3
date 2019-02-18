@@ -499,7 +499,7 @@ void drawchar(uint8_t *buff, uint8_t x, uint8_t line, uint8_t c) {
 void setpixel(uint8_t *buff, uint8_t x, uint8_t y, uint8_t color) {
 	unsigned int index = x + (y/8)*128-1;
 	unsigned int shift = 7 - (y % 8);
-	buff[index] = (color<<shift);
+	buff[index] |= (color<<shift);
 }
 
 // function to clear a single pixel
@@ -533,12 +533,12 @@ void drawline(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1,uint8
              //y := y + sign(deltay) * 1
              //error := error - 1.0
 	int deltax = x1-x0;
-	int deltay = y0-y1;
-	int sign = 1;
+	int deltay = y1-y0;
+	int sign;
 	float deltaerr = abs((float)deltay/(float)deltax); 
 	float error = 0.0;
 	int y = y0;
-	for(int x = x0; x < x1+1; x++) {
+	for(int x = x0; x <= x1; x++) {
 		setpixel(buff,x,y,color);
 		error += deltaerr;
 		if (error >= 0.5) {
@@ -557,33 +557,41 @@ void drawline(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1,uint8
 //function to draw a vertical line
 void drawline_vert(uint8_t *buff,uint8_t x, uint8_t y0, uint8_t y1,uint8_t color) {
 	for(int i = y0; i<=y1; i++) {
-		setpixel(buff, x, i, color)
+		setpixel(buff, x, i, color);
+	}
+}
+
+//function to draw a vertical line
+void drawline_horz(uint8_t *buff,uint8_t y, uint8_t x0, uint8_t x1,uint8_t color) {
+	for(int i = x0; i<=x1; i++) {
+		setpixel(buff, i, y, color);
 	}
 }
 
 // function to draw a filled rectangle
 void fillrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
 	for(int i = y; i<=y+h; i++) {
-		drawline(buff, x, i, y+w, i, color);
+		drawline_horz(buff, i, x, x+w, color);
 	}
 }
 
 
 // function to draw a rectangle
 void drawrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
-	drawline_vert(buff, x,y,y+h);
-	drawline(buff, x,y+h,x+w,y+h);
-	drawline_vert(buff, x+w,y+h,y);
-	drawline(buff, x,y,x+w,y);
+	drawline_vert(buff, x,y,y+h,color);
+	drawline(buff, x,y+h,x+w,y+h,color);
+	drawline_vert(buff, x+w,y,y+h,color);
+	drawline(buff, x,y,x+w,y,color);
 }
 
 
 // function to draw a circle
 void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
-	for(int i = x0-r; i<x0+r; i++) {
-		for(int j = y0-r; j<y0+r; j++) {
+	float offset = 0.5;
+	for(int i = x0-r; i<=x0+r; i++) {
+		for(int j = y0-r; j<=y0+r; j++) {
 			int dist = sqrt(pow((i-x0),2)+pow((j-y0),2));
-			if(dist == r) {
+			if(dist > r-offset && dist<r+offset) {
 				setpixel(buff, i, j, color);
 			}
 		}
@@ -593,10 +601,10 @@ void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 
 // function to draw a filled circle
 void fillcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
-	for(int i = x0-r; i<x0+r; i++) {
-		for(int j = y0-r; j<y0+r; j++) {
-			int dist = sqrt(pow((i-x0),2)+pow((j-y0),2));
-			if(dist<=r) {
+	for(int i = x0-r; i<=x0+r; i++) {
+		for(int j = y0-r; j<=y0+r; j++) {
+			float dist = sqrt(pow((i-x0),2)+pow((j-y0),2));
+			if(dist<r) {
 				setpixel(buff, i, j, color);
 			}
 		}
