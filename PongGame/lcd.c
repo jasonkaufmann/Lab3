@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <util/delay.h>
+#include <math.h>
 #include <avr/pgmspace.h>
 #include "lcd.h"
 
@@ -532,7 +533,7 @@ void drawline(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1,uint8
              //y := y + sign(deltay) * 1
              //error := error - 1.0
 	int deltax = x1-x0;
-	int deltay = y1-y0;
+	int deltay = y0-y1;
 	int sign = 1;
 	float deltaerr = abs((float)deltay/(float)deltax); 
 	float error = 0.0;
@@ -553,26 +554,46 @@ void drawline(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1,uint8
 	}
 }
 
+//function to draw a vertical line
+void drawline_vert(uint8_t *buff,uint8_t x, uint8_t y0, uint8_t y1,uint8_t color) {
+	for(int i = y0; i<=y1; i++) {
+		setpixel(buff, x, i, color)
+	}
+}
+
 // function to draw a filled rectangle
 void fillrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
-	
+	for(int i = y; i<=y+h; i++) {
+		drawline(buff, x, i, y+w, i, color);
+	}
 }
 
 
 // function to draw a rectangle
 void drawrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
-	
+	drawline_vert(buff, x,y,y+h);
+	drawline(buff, x,y+h,x+w,y+h);
+	drawline_vert(buff, x+w,y+h,y);
+	drawline(buff, x,y,x+w,y);
 }
 
 
 // function to draw a circle
 void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
+
 	
 }
 
 
 // function to draw a filled circle
 void fillcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
-	
+	for(int i = x0-r; i<x0+r; i++) {
+		for(int j = y0-r; j<y0+r; j++) {
+			int dist = sqrt(pow(i,2)+pow(j,2));
+			if(dist<=r) {
+				setpixel(buff, i, j, color);
+			}
+		}
+	}
 }
 
