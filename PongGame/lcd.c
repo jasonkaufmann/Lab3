@@ -589,7 +589,7 @@ void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 void fillcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 	for(int i = x0-r; i<x0+r; i++) {
 		for(int j = y0-r; j<y0+r; j++) {
-			int dist = sqrt(pow(i,2)+pow(j,2));
+			int dist = sqrt(pow((i-x0),2)+pow((j-y0),2));
 			if(dist<=r) {
 				setpixel(buff, i, j, color);
 			}
