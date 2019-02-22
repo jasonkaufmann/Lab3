@@ -35,21 +35,23 @@ int main(void)
 	lcd_command(CMD_DISPLAY_ON);
 	lcd_set_brightness(0x18);
 	write_buffer(buff);
-	_delay_ms(1000); //10k
+	_delay_ms(3000); //10k
 	clear_buffer(buff);
+	write_buffer(buff);
+	_delay_ms(3000);
 	
-	char String[] = "Hello, world!";
+	//char String[] = "Hello, world!";
 	while (1)
 	{
 		//drawchar(buff,64,0,displayChar);
-		//setpixel(buff, 64, 32, 1);
-		int size = sizeof(String);
-		drawline(buff,1,1,64,32,1);
-		write_buffer(buff);
-		_delay_ms(1000); //5k
-		//clearpixel(buff, 64, 32);
+		//setpixel(buff, 100, 61, 1);
+		//int size = sizeof(String);
+		fillrect(buff, 1,10,50,50,1);
 		//write_buffer(buff);
-		//_delay_ms(1000);
+		//_delay_ms(1000); //5k
+		//clearpixel(buff, 64, 32);
+		write_buffer(buff);
+		_delay_ms(10000);
 		//displayChar++;
 	}
 }
