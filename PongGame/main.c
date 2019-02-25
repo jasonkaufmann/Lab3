@@ -298,14 +298,14 @@ int main(void)
 	lcd_command(CMD_DISPLAY_ON);
 	lcd_set_brightness(0x18);
 	write_buffer(buff);
-	_delay_ms(100); //10k
+	_delay_ms(1000); //10k
 	clear_buffer(buff);
 	write_buffer(buff);
 	_delay_ms(1000);
 	
-	char String[] = "Hello, world! \n";
-	sprintf(strbuff, String);
-	USART_putstring(strbuff);
+	//char String[] = "Hello, world! \n";
+	//sprintf(strbuff, String);
+	//USART_putstring(strbuff);
 	
 	while (game) {
 		//TODO:
