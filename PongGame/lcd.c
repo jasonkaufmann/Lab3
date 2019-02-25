@@ -497,7 +497,7 @@ void drawchar(uint8_t *buff, uint8_t x, uint8_t line, uint8_t c) {
 
 // the most basic function, set a single pixel
 void setpixel(uint8_t *buff, uint8_t x, uint8_t y, uint8_t color) {
-	unsigned int index = x + (y/8)*128-1;
+	unsigned int index = x + (y/8)*128;
 	unsigned int shift = 7 - (y % 8);
 	buff[index] |= (color<<shift);
 }
@@ -570,8 +570,8 @@ void drawline_horz(uint8_t *buff,uint8_t y, uint8_t x0, uint8_t x1,uint8_t color
 
 // function to draw a filled rectangle
 void fillrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
-	for(int i = y; i<=y+h; i++) {
-		drawline_horz(buff, i, x, x+w, color);
+	for(int i = y; i<=y+h-1; i++) {
+		drawline_horz(buff, i, x, x+w-1, color);
 	}
 }
 
@@ -611,3 +611,17 @@ void fillcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 	}
 }
 
+//draw the ball for pong
+void drawball(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t color) {
+	int r = 2;
+	//int d;
+	for(int i = x0-r; i<=x0+r; i++) {
+		for(int j = y0-r; j<=y0+r; j++) {
+			//d = abs(i - x0) + abs(j - y0);
+			if ((i == x0-r || i == x0+r) && (j == y0 -r || j == y0 + r)) {
+			} else {
+				setpixel(buff, i, j, color);
+			}
+		}
+	}
+}
