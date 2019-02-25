@@ -27,22 +27,30 @@ int accel_array[10];
 //GAME VARIABLES
 long t = 0;
 
+const char game = 1;
+
 int touchX = 0;
 int touchY = 0;
 int touchIn = 0;
 
-int p1score = 0;
-int p2score = 0;
-
 const int width = 2;
 const int height = 10;
 
+const int top_of_arena = 1;
+const int bottom_of_arena = 63;
+const int left_side_of_arena = 0;
+const int right_side_arena = 127;
+
+char end_of_turn = 0;
+char game_over = 0;
+
 int pastposx[1];
 int pastposy[1];
+int ballvels[3] = {1, 2, 3};
 
 int lenpastpos = 1;
 
-
+//GAME STRUCTS
 struct ball_t{
 	int x;
 	int y;
@@ -50,9 +58,6 @@ struct ball_t{
 	int vx;
 	int vy;
 };
-
-int ballvels[3] = {1, 2, 3};
-
 
 typedef struct ball_t ball;
 
@@ -62,11 +67,13 @@ struct player_t{
 	int w;
 	int h;
 	int v;
+	int score;
 };
 typedef struct player_t player;
 
-player player1 = { .x = 2, .y = 26, .w = 2, .h = 12, .v = 0};
-player player2 = { .x = 124, .y = 26, .w = 2, .h = 12, .v = 0};
+// STRUCT INITIALIZATION
+player player1 = { .x = 2, .y = 26, .w = 2, .h = 12, .v = 0, .score = 0};
+player player2 = { .x = 124, .y = 26, .w = 2, .h = 12, .v = 0, .score = 0};
 ball ball0 = {.x = 63, .y = 31, .r = 3, .vx = 1, .vy = 0};
 
 
@@ -79,9 +86,9 @@ int inxmax = 145;
 int inymin = 150;
 int inymax = 735;
 
-
+//Read the analog voltage at a given pin
 float readADC(int pin) {
-	ADMUX &= ~((1<<MUX0) | (1<<MUX1));
+	ADMUX &= ~((1<<MUX0) | (1<<MUX1)); //reset the pin selection pins
 	ADMUX |= pin; //telling it which pin to read from, and turning on ADC
 	ADMUX |= (1<< REFS0); //internal reference
 	ADCSRA |= (1<< ADSC) | (1<<ADEN) | (1<<ADPS1) | (1<<ADPS2); //start, enable, prescale, prescale
@@ -94,7 +101,7 @@ long map(long x, long in_min, long in_max, long out_min, long out_max) {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-
+//check if the screen is being touched 
 int touch() {
 	PORTC = 0;
 	DDRC = 0;
@@ -103,10 +110,8 @@ int touch() {
 	//X+ A2 -> ground
 	//DDRC |= (1 << PINC2); 
 	//PORTC &= ~(1 << PINC2);
-	
 	//check if Y- is high, A3
 	int r = readADC(3);
-	
 	return r;
 }
 
@@ -137,9 +142,10 @@ void readTouch() {
 }
 
 void drawStage() {
+	//draw arena
 	drawrect(buff, 0,0,127, 63, 1);
-	drawchar(buff, 54,7, 48 + p1score);
-	drawchar(buff, 67, 7, 48 + p2score);
+	drawchar(buff, 54,7, 48 + player1.score);
+	drawchar(buff, 67, 7, 48 + player2.score);
 	
 	//draw paddles
 	fillrect(buff,player1.x, player1.y, player1.w, player1.h, 1);
@@ -170,13 +176,12 @@ void serve() {
 	USART_putstring(strbuff);
 }
 
-void newpos(long t) {
+void update_positions(long t) {
 	ball0.x += ball0.vx;
 	ball0.y += ball0.vy;
 	int i = t % lenpastpos;
 	pastposx[i] = ball0.x;
 	pastposy[i] = ball0.y;
-	
 	
 	sprintf(strbuff, "player2.v %d \n",player2.v);
 	USART_putstring(strbuff);
@@ -196,6 +201,33 @@ void newpos(long t) {
 		player2.y = 63 - player2.h;
 	}
 }
+
+void update_velocities() {
+	if(ball0.x == left_side_of_arena) {
+		end_of_turn = 1;
+		player2.score += 1
+	} else if(ball0.x == right_side_arena) {
+		end_of_turn = 1;
+		player1.score += 1
+	}
+
+	if (ball0.y == top_of_arena) {
+		ball0.vy = -1;
+	} else if(ball0.y == bottom_of_arena) {
+		ball0.vy = 1;
+	}
+
+	if (ball0.x == (player1.x+1) && ball0.y > (player1.y-player1.h) && ball0.y < player1.y) {
+		int rand = rand() % 3; 
+		ball0.vx = ballvels[rand];
+		//map position it hits to y velocity
+	} else if (ball0.x == (player2.x+1) && ball0.y > (player2.y-player2.h) && ball0.y < player2.y) {
+		int rand = rand() % 3; 
+		ball0.vx = -1*ballvels[rand];
+		//map position it hits to y velocity
+	}
+}
+
 int get_average(int array[]) {
 	length = sizeof(array);
 	int sum = 0;
@@ -223,10 +255,10 @@ void twoplayers_move() {
 	readTouch();
 	drawX = map((long)touchX, (long)inxmin, (long)inxmax, 0, 127);
 	drawY = map((long)touchY, (long)inymin, (long)inymax, 63, 0);
-	sprintf(strbuff, "x: %d \n", drawX);
-	USART_putstring(strbuff);
-	sprintf(strbuff, "y: %d \n", drawY);
-	USART_putstring(strbuff);
+	//sprintf(strbuff, "x: %d \n", drawX);
+	//USART_putstring(strbuff);
+	//sprintf(strbuff, "y: %d \n", drawY);
+	//USART_putstring(strbuff);
 	if (drawX < 63) { //player 1
 		if (drawY < 31) {
 			//player1 moves up (decreases y)
@@ -275,26 +307,36 @@ int main(void)
 	sprintf(strbuff, String);
 	USART_putstring(strbuff);
 	
-	serve();
-	
-	
-	while (1)
-	{
-		
-		touchIn = touch();		
-		if(touchIn > 0) {
-			twoplayers_move();
+	while (game) {
+		//TODO:
+		//Make choice menu
+		//Player v. Player
+		//Player v. Computer
+		//Accelerometer v. Computer
+		while (game_over == 0) {
+			serve();
+			while (end_of_turn == 0) {
+				touchIn = touch();		
+				if(touchIn > 0) {
+					twoplayers_move();
+				}
+				else {
+					player1.v = 0;
+					player2.v = 0;
+				}
+				clear_buffer(buff);
+				update_positions(t);
+			//update_velocities();
+				drawStage();
+				write_buffer(buff);
+				_delay_ms(50);
+				t++;
+			}
+		//TODO:
+		//end of turn sequence
 		}
-		else {
-			player1.v = 0;
-			player2.v = 0;
-		}
-		clear_buffer(buff);
-		newpos(t);
-		drawStage();
-		write_buffer(buff);
-		_delay_ms(50);
-		t++;
-
+	//TODO:
+	//end of game sequence
+	//change color of LCD
 	}
 }
