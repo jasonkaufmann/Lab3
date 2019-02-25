@@ -175,6 +175,9 @@ void newpos(long t) {
 	pastposx[i] = ball0.x;
 	pastposy[i] = ball0.y;
 	
+	
+	sprintf(strbuff, "player2.v %d \n",player2.v);
+	USART_putstring(strbuff);
 	player1.y += player1.v;
 	player2.y += player2.v;
 	//make sure it's not exiting the bounds
@@ -196,6 +199,10 @@ void twoplayers_move() {
 	readTouch();
 	drawX = map((long)touchX, (long)inxmin, (long)inxmax, 0, 127);
 	drawY = map((long)touchY, (long)inymin, (long)inymax, 63, 0);
+	sprintf(strbuff, "x: %d \n", drawX);
+	USART_putstring(strbuff);
+	sprintf(strbuff, "y: %d \n", drawY);
+	USART_putstring(strbuff);
 	if (drawX < 63) { //player 1
 		if (drawY < 31) {
 			//player1 moves up (decreases y)
@@ -212,6 +219,8 @@ void twoplayers_move() {
 		}
 		else {
 			player2.v = 1;
+			sprintf(strbuff, "flag");
+			USART_putstring(strbuff);
 		}
 	}
 }
@@ -249,7 +258,7 @@ int main(void)
 	{
 		
 		touchIn = touch();		
-		if(touchIn > 150) {
+		if(touchIn > 0) {
 			twoplayers_move();
 		}
 		else {
