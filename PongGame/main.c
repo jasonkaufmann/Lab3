@@ -21,6 +21,8 @@
 
 char displayChar = 0;
 char strbuff[20];
+//ACCELEROMETER VARIABLES
+int accel_array[10];
 
 //GAME VARIABLES
 long t = 0;
@@ -194,7 +196,29 @@ void newpos(long t) {
 		player2.y = 63 - player2.h;
 	}
 }
+int get_average(int array[]) {
+	length = sizeof(array);
+	int sum = 0;
+	for(int i = 0; i<length,i++) {
+		sum += array[i]
+	}
+	int average = sum/length;
+	return average;
+}
 
+void get_accleromter_values() {
+	int adc = readADC(4); //x value from accelerometer
+	int n = 10;
+	for(i=0,j=1;i<n;i++,j++) {
+		if(i==(n-1)) {
+			accel_array[i]=adc;
+		} else {
+			accel_array[i]= accel_array[j];
+		}
+	}
+	average = get_average(accel_array);
+	//determine the velocity (not sure how -x is distinguished form +x)
+}
 void twoplayers_move() {
 	readTouch();
 	drawX = map((long)touchX, (long)inxmin, (long)inxmax, 0, 127);
