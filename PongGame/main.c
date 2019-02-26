@@ -201,6 +201,16 @@ void update_positions(long t) {
 		player2.y = 63 - player2.h;
 	}
 }
+void make_sound() {
+	DDRD |= (1<< PIND3); //set OC1B as output
+	TCCR1A |= 0x20; //use a non-inverting signal
+	TCCR1A |= 0x03;  // use fast pwm
+	TCCR1B |= 0x08; // waveform generation
+	TCCR1B |= (1 << CS22); //prescaler 64
+
+	OCR1A = pitch_ticks; //set the period
+	OCR1B = OCR1A/2; //set the duty cycle
+}
 
 void update_velocities() {
 	if(ball0.x == left_side_of_arena) {
@@ -213,17 +223,21 @@ void update_velocities() {
 
 	if (ball0.y == top_of_arena) {
 		ball0.vy = -1;
+		make_sound();
 	} else if(ball0.y == bottom_of_arena) {
 		ball0.vy = 1;
+		make_sound();
 	}
 
 	if (ball0.x == (player1.x+1) && ball0.y > (player1.y-player1.h) && ball0.y < player1.y) {
 		int rand = rand() % 3; 
 		ball0.vx = ballvels[rand];
+		make_sound();
 		//map position it hits to y velocity
 	} else if (ball0.x == (player2.x+1) && ball0.y > (player2.y-player2.h) && ball0.y < player2.y) {
 		int rand = rand() % 3; 
 		ball0.vx = -1*ballvels[rand];
+		make_sound();
 		//map position it hits to y velocity
 	}
 }
