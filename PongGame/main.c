@@ -326,10 +326,10 @@ int main(void)
 				}
 				clear_buffer(buff);
 				update_positions(t);
-			//update_velocities();
+			    //update_velocities();
 				drawStage();
 				write_buffer(buff);
-				_delay_ms(50);
+				_delay_ms(50); //determines framerate of game 
 				t++;
 			}
 		//TODO:
