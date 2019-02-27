@@ -1,3 +1,5 @@
+// PONG by KAUFMANN & ABHIRAMAN LAB 3 ESE 350
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <inttypes.h>
@@ -21,6 +23,9 @@
 
 char displayChar = 0;
 char strbuff[20];
+//TOUCH THRESH
+int thresh = 100;
+
 //ACCELEROMETER VARIABLES
 int accel_array[3];
 
@@ -112,20 +117,12 @@ int touch() {
 	PORTC = 0;
 	DDRC = 0;
 	DDRC &= ~((1 << PINC0) | (1 << PINC1) | (1 << PINC2) | (1 << PINC3));
-	//X- A0 -> HI-Z, Y+ A1 -> HI-Z (already from read mode)
-	//X+ A2 -> ground
-	//DDRC |= (1 << PINC2);
-	//PORTC &= ~(1 << PINC2);
-	//check if Y- is high, A3
 	int r = readADC(3);
 	return r;
 }
 
 
 void readTouch() {
-	//disable input capture
-	//PORTC = 0;
-	//DDRC = 0;
 	
 	//X- A0, X+ A2, Y- A3, Y+ A1
 	//1. To read X coordinate first, we will put X- and X+ in digital mode and set X- high and X+ low.
@@ -142,8 +139,6 @@ void readTouch() {
 	//4. Set X- and X+ to ADC input, read X- ADC as y coord
 	DDRC &= ~((1 << PINC0) | (1 << PINC2));
 	touchY = readADC(0);
-	//turn off ports
-	//PORTC = 0;
 	
 }
 
@@ -164,6 +159,7 @@ void drawStage() {
 
 }
 
+//shoot ball from middle with random velocity and direction
 void serve() {
 	//long r = rand() % 3;
 	long r = 0;
@@ -172,20 +168,14 @@ void serve() {
 		sign=-1;
 	}
 	ball0.vx = sign*ballvels[r];
-	//sprintf(strbuff, "range: %d \n", r);
-	//USART_putstring(strbuff);
-	//sprintf(strbuff, "veli: %ld \n", veli);
-	//USART_putstring(strbuff);
 	sprintf(strbuff, "vx: %d \n", ball0.vx);
 	USART_putstring(strbuff);
 }
 
+//checks velocities of ball and players and moves them, so long as they're not at the bounds
 void update_positions(long t) {
 	ball0.x += ball0.vx;
 	ball0.y += ball0.vy;
-	//int i = t % lenpastpos;
-	//pastposx[i] = ball0.x;
-	//pastposy[i] = ball0.y;
 	
 	player1.y += player1.v;
 	player2.y += player2.v;
@@ -204,11 +194,11 @@ void update_positions(long t) {
 	}
 }
 
+//Turn off buzzer after 200 ms
 ISR (TIMER1_COMPA_vect) {
 	PORTB &= ~(1<<PINB3);
-	//TCCR1A = 0; // disable output compare
-	//TIMSK1 = 0; // kill everything, especially OCIE1A (output compare interrupt enable)
 }
+//timer 1 intiailizer
 void timer1_init() {
 	DDRB |= (1<<PINB3);  //set PINB1 to an output
 	TCCR1A = 0x40; //enable output compare
@@ -216,21 +206,14 @@ void timer1_init() {
 	TIMSK1 = 0x02; // enable the output compare interrupts
 	sei(); //enable global interrupts
 }
-
+//make the sound for the ball bounces
 void make_sound() {
-	//stop = 0;
 	PORTB|= (1<<PINB3); 
 	TCNT1 = 0;
 	OCR1A = TCNT1+50000; //set the value in OCR1A to fire 
-	//TCCR1A |= 0x20; //use a non-inverting signal
-	//TCCR1A |= 0x03;  // use fast pwm
-	//TCCR1B |= 0x08; // waveform generation
-	//TCCR1B |= (1 << CS22); //prescaler 64
 
-	//OCR1A = pitch_ticks; //set the period
-	//OCR1B = OCR1A/2; //set the duty cycle
 }
-
+//indexes randomly into an array of allowed velocities
 int get_rand_velocity() {
 	int random_value = rand() % 3;
 	int sign = rand() % 2;
@@ -240,11 +223,9 @@ int get_rand_velocity() {
 	int velocity = sign*ballvels[random_value];
 	return velocity;
 }
+
+//handles all bounce events
 void update_velocities() {
-	//sprintf(strbuff, "VY: %d \n ", ball0.vy);
-	//USART_putstring(strbuff);
-	//sprintf(strbuff, "Y: %d \n", ball0.y);
-	//USART_putstring(strbuff);
 	if((ball0.x-ball0.r) -left_side_of_arena <= abs(ball0.vx)-1 ) {
 		end_of_turn = 1;
 		player2.score += 1;
@@ -279,7 +260,7 @@ void update_velocities() {
 		ball0.vy = get_rand_velocity();
 	}
 }
-
+//averager
 int get_average(int array[]) {
 	int length = sizeof(array);
 	int sum = 0;
@@ -289,7 +270,7 @@ int get_average(int array[]) {
 	int average = sum/length;
 	return average;
 }
-
+//ADC read and take moving average from accelerometer
 int get_accleromter_values() {
 	int adc = readADC(4); //x value from accelerometer
 
@@ -308,33 +289,25 @@ int get_accleromter_values() {
 	//check limits as well 
 	//determine the velocity (not sure how -x is distinguished form +x)
 }
+//move the player based on the accelerometer reading
 void one_player_acc_move(int acc) { //have wires facing right, controls p1 on the left.
-				sprintf(strbuff, "avg acc: %d \n", acc);
-				USART_putstring(strbuff);
+
 	if (acc < 370) {
 		player1.v = 2;
-						sprintf(strbuff, "vy = 1 \n");
-						USART_putstring(strbuff);
 	}
 	else if (acc > 430) {
 		player1.v = -2;
-								sprintf(strbuff, "vy = -1 \n");
-								USART_putstring(strbuff);
 	}
 	else {
 		player1.v = 0;
 	}
 	
 }
-
+//move both players based on touch position
 void twoplayers_move() {
 	readTouch();
 	drawX = map((long)touchX, (long)inxmin, (long)inxmax, 0, 127);
 	drawY = map((long)touchY, (long)inymin, (long)inymax, 63, 0);
-	//sprintf(strbuff, "x: %d \n", drawX);
-	//USART_putstring(strbuff);
-	//sprintf(strbuff, "y: %d \n", drawY);
-	//USART_putstring(strbuff);
 	if (drawX < 63) { //player 1
 		if (drawY < 31) {
 			//player1 moves up (decreases y)
@@ -355,7 +328,7 @@ void twoplayers_move() {
 		}
 	}
 }
-
+//move one player based on touch position
 void oneplayer_move() {
 	readTouch();
 	drawY = map((long)touchY, (long)inymin, (long)inymax, 63, 0);
@@ -372,7 +345,8 @@ void oneplayer_move() {
 		player1.v = movevel;
 	}
 }
-
+//move the computer: if the ball is displaced from the center of the computer paddle
+// the computer will move toward the ball
 void computer_move() {
 	if (ball0.y > (player2.y + player2.h/2)) {
 		player2.v = movevel;
@@ -382,7 +356,7 @@ void computer_move() {
 	}
 	
 }
-
+// main game init and loop
 int main(void)
 {
 	USART_init();
@@ -406,13 +380,9 @@ int main(void)
 	write_buffer(buff);
 	_delay_ms(1000);
 	
-	//char String[] = "Hello, world! \n";
-	//sprintf(strbuff, String);
-	//USART_putstring(strbuff);
 	
 	while (game) {
 		
-		//TODO:
 		//Make choice menu
 		//Player v. Player 0
 		//Player v. Computer 1
@@ -455,14 +425,14 @@ int main(void)
 			serve();
 			while (end_of_turn == 0) {
 				
-				if (choice == 2) {
+				if (choice == 2) {  //accelerometer mode
 					int acc = get_accleromter_values();
 					one_player_acc_move(acc);
 					computer_move();
 				}
-				if (choice == 1) {
+				if (choice == 1) { //1 player mode touch
 						touchIn = touch();
-						if(touchIn > 0) {
+						if(touchIn > thresh) {
 							oneplayer_move();
 						}
 						else {
@@ -471,10 +441,10 @@ int main(void)
 						computer_move();
 				}
 				
-				if (choice == 0) {
+				if (choice == 0) { // 2 player touch mode
 
 					touchIn = touch();
-					if(touchIn > 0) {
+					if(touchIn > thresh) {
 						twoplayers_move();
 					}
 					else {
@@ -492,7 +462,6 @@ int main(void)
 			}
 			_delay_ms(100);
 			end_of_turn = 0;
-			//TODO:
 			//end of turn sequence
 			//flash lights
 			
@@ -517,6 +486,7 @@ int main(void)
 		}
 		clear_buffer(buff);
 		write_buffer(buff);
+		//write end game screen
 		char String[] = "GAME OVER";
 		drawstring(buff,40,3,String,sizeof(String));
 		if (player1.score==max_score) {
@@ -527,7 +497,7 @@ int main(void)
 			drawstring(buff,30,4,winner,sizeof(winner));
 		}
 		write_buffer(buff);
-		_delay_ms(250);
+		_delay_ms(2000);
 		clear_buffer(buff);
 		write_buffer(buff);
 		_delay_ms(1000);
@@ -535,8 +505,6 @@ int main(void)
 		player1.y = 26;
 		player2.score = 0;
 		player2.y = 26;
-		//TODO:
-		//end of game sequence
-		//change color of LCDs
+
 	}
 }
