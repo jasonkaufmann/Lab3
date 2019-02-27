@@ -299,7 +299,8 @@ void get_accleromter_values() {
 			accel_array[i]= accel_array[j];
 		}
 	}
-	int saverage = get_average(accel_array);
+	int average = get_average(accel_array);
+	//check limits aswell 
 	//determine the velocity (not sure how -x is distinguished form +x)
 }
 void twoplayers_move() {
