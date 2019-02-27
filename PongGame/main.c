@@ -22,10 +22,11 @@
 char displayChar = 0;
 char strbuff[20];
 //ACCELEROMETER VARIABLES
-int accel_array[10];
+int accel_array[3];
 
 //GAME VARIABLES
-int max_score = 9;
+int movevel = 2;
+int max_score = 5;
 long t = 0;
 volatile unsigned int stop = 0; 
 const char game = 1;
@@ -93,7 +94,7 @@ int inymax = 735;
 
 //Read the analog voltage at a given pin
 float readADC(int pin) {
-	ADMUX &= ~((1<<MUX0) | (1<<MUX1)); //reset the pin selection pins
+	ADMUX &= ~((1<<MUX0) | (1<<MUX1) | (1 << MUX2)); //reset the pin selection pins
 	ADMUX |= pin; //telling it which pin to read from, and turning on ADC
 	ADMUX |= (1<< REFS0); //internal reference
 	ADCSRA |= (1<< ADSC) | (1<<ADEN) | (1<<ADPS1) | (1<<ADPS2); //start, enable, prescale, prescale
@@ -264,13 +265,13 @@ void update_velocities() {
 		make_sound();
 	}
 
-	if ((ball0.x-ball0.r) == (player1.x+1) && ball0.y < (player1.y+player1.h) && ball0.y > player1.y) {
+	if (((ball0.x-ball0.r) - (player1.x +1)) <= (abs(ball0.vx) -1) && ball0.y < (player1.y+player1.h) && ball0.y > player1.y && ball0.vx < 0) { //player1
 		make_sound();
 		int random_value = rand() % 3;
 		ball0.vx = ballvels[random_value];
 		ball0.vy = get_rand_velocity();
 		//make_sound();
-		} else if ((ball0.x+ball0.r) == (player2.x+1) && ball0.y < (player2.y+player2.h) && ball0.y > player2.y) {
+		} else if (((player2.x) - (ball0.x+ball0.r)) <= (abs(ball0.vx) -1) && ball0.y < (player2.y+player2.h) && ball0.y > player2.y && ball0.vx > 0) { //player2
 		make_sound();
 		int random_value = rand() % 3;
 		ball0.vx = -1*ballvels[random_value];
@@ -289,9 +290,10 @@ int get_average(int array[]) {
 	return average;
 }
 
-void get_accleromter_values() {
+int get_accleromter_values() {
 	int adc = readADC(4); //x value from accelerometer
-	int n = 10;
+
+	int n = 3;
 	for(int i=0, j=1;i<n;i++,j++) {
 		if(i==(n-1)) {
 			accel_array[i]=adc;
@@ -300,9 +302,31 @@ void get_accleromter_values() {
 		}
 	}
 	int average = get_average(accel_array);
-	//check limits aswell 
+			sprintf(strbuff, "avg acc: %d \n", average);
+			USART_putstring(strbuff);
+	return average;
+	//check limits as well 
 	//determine the velocity (not sure how -x is distinguished form +x)
 }
+void one_player_acc_move(int acc) { //have wires facing right, controls p1 on the left.
+				sprintf(strbuff, "avg acc: %d \n", acc);
+				USART_putstring(strbuff);
+	if (acc < 370) {
+		player1.v = 2;
+						sprintf(strbuff, "vy = 1 \n");
+						USART_putstring(strbuff);
+	}
+	else if (acc > 430) {
+		player1.v = -2;
+								sprintf(strbuff, "vy = -1 \n");
+								USART_putstring(strbuff);
+	}
+	else {
+		player1.v = 0;
+	}
+	
+}
+
 void twoplayers_move() {
 	readTouch();
 	drawX = map((long)touchX, (long)inxmin, (long)inxmax, 0, 127);
@@ -314,23 +338,49 @@ void twoplayers_move() {
 	if (drawX < 63) { //player 1
 		if (drawY < 31) {
 			//player1 moves up (decreases y)
-			player1.v = -1;
+			player1.v = -movevel;
 		}
 		else {
-			player1.v = 1;
+			player1.v = movevel;
 		}
 	}
 	else { //player 2
 		if (drawY < 31) {
 			//player1 moves up (decreases y)
-			player2.v = -1;
+			player2.v = -movevel;
 		}
 		else {
-			player2.v = 1;
-			sprintf(strbuff, "flag");
-			USART_putstring(strbuff);
+			player2.v = movevel;
+
 		}
 	}
+}
+
+void oneplayer_move() {
+	readTouch();
+	drawY = map((long)touchY, (long)inymin, (long)inymax, 63, 0);
+	//sprintf(strbuff, "x: %d \n", drawX);
+	//USART_putstring(strbuff);
+	//sprintf(strbuff, "y: %d \n", drawY);
+	//USART_putstring(strbuff);
+
+	if (drawY < 31) {
+		//player1 moves up (decreases y)
+		player1.v = -movevel;
+	}
+	else {
+		player1.v = movevel;
+	}
+}
+
+void computer_move() {
+	if (ball0.y > (player2.y + player2.h/2)) {
+		player2.v = movevel;
+	}
+	if (ball0.y < player2.y + player2.h/2) {
+		player2.v = -movevel;
+	}
+	
 }
 
 int main(void)
@@ -364,10 +414,10 @@ int main(void)
 		
 		//TODO:
 		//Make choice menu
-		//Player v. Player
-		//Player v. Computer
-		//Accelerometer v. Computer
-		int choice = 0;
+		//Player v. Player 0
+		//Player v. Computer 1
+		//Accelerometer v. Computer 2
+		int choice = 0; 
 		char player_v_player[] = "PLAYER V. PLAYER";
 		char player_v_computer[] = "PLAYER V. COMPUTER";
 		char accel_v_computer[] = "ACCEL V. COMPUTER";
@@ -404,13 +454,33 @@ int main(void)
 			ball0.vy = 0;
 			serve();
 			while (end_of_turn == 0) {
-				touchIn = touch();
-				if(touchIn > 0) {
-					twoplayers_move();
+				
+				if (choice == 2) {
+					int acc = get_accleromter_values();
+					one_player_acc_move(acc);
+					computer_move();
 				}
-				else {
-					player1.v = 0;
-					player2.v = 0;
+				if (choice == 1) {
+						touchIn = touch();
+						if(touchIn > 0) {
+							oneplayer_move();
+						}
+						else {
+							player1.v = 0;
+						}
+						computer_move();
+				}
+				
+				if (choice == 0) {
+
+					touchIn = touch();
+					if(touchIn > 0) {
+						twoplayers_move();
+					}
+					else {
+						player1.v = 0;
+						player2.v = 0;
+					}
 				}
 				clear_buffer(buff);
 				update_positions(t);
